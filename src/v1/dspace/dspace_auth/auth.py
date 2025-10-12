@@ -57,8 +57,8 @@ class DspaceAuthService():
     @staticmethod
     async def _fetch_csrf_token(email: str):
         try:
-            token = await get_or_fetch_cache(email, dspace_client.get_csrf_token)
-            logger.debug(f"CSRF token fetched for {email}")
+            token = await get_or_fetch_cache(str(email), dspace_client.get_csrf_token)
+            logger.debug(f"CSRF token fetched for {email}. Token:{token}")
             return token
         except Exception as e:
             logger.error(f"Failed to fetch CSRF token for {email}: {str(e)}")

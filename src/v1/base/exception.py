@@ -2,7 +2,7 @@
 # Custom Exception Classes
 
 class BaseExceptionClass(Exception):
-    def __init__(self, message: str):
+    def __init__(self, message: str | None = None):
         self.message = message
         super().__init__(message)
 
@@ -55,3 +55,9 @@ class ServerError(BaseExceptionClass):
 
 class NotActive(BaseExceptionClass):
     pass
+
+class DSpaceError(BaseExceptionClass):
+    pass
+    # def __init__(self, message: str | None = None):
+    #     self.message = message or "Unexpected error occurred, check logs"
+    #     super().__init__(self.message)

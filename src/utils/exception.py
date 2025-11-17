@@ -22,7 +22,8 @@ from src.v1.base.exception import (
     DatabaseError,
     ServerError,
     NotActive, 
-    BaseExceptionClass
+    BaseExceptionClass,
+    DSpaceError
     
     
 )
@@ -209,6 +210,19 @@ def register_error_handlers(app: FastAPI):
                 "status": "error",
                 "message": "Database error occurred",
                 "error_code": "database_error",
+                "data": None,
+                "role": None
+            }
+        )
+    )
+    app.add_exception_handler(
+        DSpaceError,
+        create_exception_handler(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            initial_detail={
+                "status": "error",
+                "message": "Dspace error occurred, check logs",
+                "error_code": "dspace_error",
                 "data": None,
                 "role": None
             }

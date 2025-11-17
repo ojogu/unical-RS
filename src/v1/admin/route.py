@@ -6,8 +6,8 @@ from src.utils.log import setup_logger
 
 logger = setup_logger(__name__, "dspace_auth_routes.log")
 
-# auth for users, implement admin endpoints, or use http client to access this
-dspace_auth_router = APIRouter(prefix="/dspace")
+# auth for implement admin endpoints, or use http client to access this
+dspace_auth_router = APIRouter(prefix="/admin")
 
 @dspace_auth_router.post("/login")
 async def login(data: Login):

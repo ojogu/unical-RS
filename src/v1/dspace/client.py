@@ -5,8 +5,10 @@ from src.utils.config import config
 from src.utils.http_config import http_client
 import json
 from src.utils.log import setup_logger
+from src.v1.base.exception import (
+    DSpaceError
+)
 logger = setup_logger(__name__, "client.log")
-
 
 
 class Client:
@@ -22,10 +24,11 @@ class Client:
         http_method: str,
         req_headers: Dict,
         endpoint: str,
-        params: Dict = None,
+        # params: Dict = None,
         data: Dict = None,
-        cookie_data: Dict = None,
-        token: str = None
+        # cookie_data: Dict = None,
+        token: str = None,
+        # xrsf_token:str=None 
     ) -> Dict[str, Any]:
         """Make HTTP request to DSpace API"""
 
@@ -37,7 +40,9 @@ class Client:
         headers = {**req_headers} if req_headers else {}
         headers.setdefault("Content-Type", "application/json")
 
-        # Optional token
+
+            
+        # Optional token (jwt for authentication)
         if token:
             headers["Authorization"] = f"Bearer {token}"
 
@@ -46,7 +51,7 @@ class Client:
             "method": http_method,
             "url": url,
             "headers": headers,
-            "params": params,
+            # "params": params,
         }
 
         # Handle content type
@@ -58,13 +63,15 @@ class Client:
                 request_kwargs["json"] = data
 
         # Optional cookies
-        if cookie_data:
-            request_kwargs["cookies"] = cookie_data
+        # if cookie_data:
+        #     request_kwargs["cookies"] = cookie_data automatic parsing of cookies by aiohttp
 
         logger.info(f"Making {http_method} request to: {url}")
         logger.debug(f"Request headers: {headers}")
-        logger.debug(f"Request params: {params}")
-        logger.debug(f"Request cookies: {cookie_data}")
+        # logger.debug(f"Request params: {params}")
+        logger.debug(f"Request argument: {request_kwargs}")
+        # logger.debug(f"Request cookies: {request_kwargs.get("cookies")}")
+
 
         try:
             async with self.session.request(**request_kwargs) as response:
@@ -77,11 +84,11 @@ class Client:
                 f"URL={e.request_info.real_url}",
                 exc_info=True
             )
-            raise
+            raise DSpaceError()
 
         except Exception as e:
             logger.error(f"Unexpected error during API request: {str(e)}", exc_info=True)
-            raise
+            raise DSpaceError()
 
 
 
@@ -122,12 +129,7 @@ class Client:
             )
 
             # Raise structured error
-            raise Exception({
-                "status": e.status,
-                "url": str(e.request_info.real_url),
-                "message": e.message or "HTTP Error",
-                "details": error_details
-            }) from e
+            raise DSpaceError()
  
         
     async def get_csrf_token(self):
@@ -147,20 +149,20 @@ class Client:
             logger.info("CSRF token retrieved successfully")
             cookies = self.session.cookie_jar.filter_cookies(self.base_url)
             cookie_value = list(cookies.values())[0].value
-            cookie_dict = {"DSPACE-XSRF-COOKIE": cookie_value}
             self.csrf_token = res_headers.get("DSPACE-XSRF-TOKEN")
             if not self.csrf_token:
-                raise Exception("CSRF token not found in response headers")
+                logger.error("CSRF token not found in response headers")
+                raise DSpaceError("CSRF token not found in response headers")
+            logger.debug(f"cookie value: {cookie_value}")
             session_data = {
-            "csrf_token": self.csrf_token,
-            "csrf_cookie": cookie_value,
+            "auth_cookie": self.csrf_token,
             "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
         }
             return session_data
         
         except Exception as e:
             logger.error(f"Failed to get CSRF token: {str(e)}", exc_info=True)
-            raise
+            raise DSpaceError()
     
     
 

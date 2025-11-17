@@ -4,10 +4,10 @@ from contextlib import asynccontextmanager
 from src.utils.db import init_db, drop_db
 from src.utils.redis import setup_redis
 from src.v1.auth.auth import auth_router
-from src.v1.dspace.dspace_auth.route import dspace_auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.utils.config import Settings 
 from src.utils.exception import register_error_handlers
+from src.v1.admin.route import dspace_auth_router
 
 @asynccontextmanager
 async def life_span(app: FastAPI):

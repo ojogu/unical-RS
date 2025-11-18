@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 # from utils.db import init_db
 from src.utils.db import init_db, drop_db
-from src.utils.redis import setup_redis
+from src.utils.redis_client import setup_redis
 from src.v1.auth.auth import auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.utils.config import Settings 

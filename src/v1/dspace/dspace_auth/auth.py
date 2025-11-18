@@ -1,5 +1,5 @@
 from src.v1.dspace.client import dspace_client
-from src.utils.redis import get_redis, get_or_fetch_cache
+from src.utils.redis_client import set_cache, get_or_fetch_cache
 from src.v1.schema.auth import Register, Login
 from src.utils.log import setup_logger
 from src.v1.base.exception import (
@@ -51,6 +51,10 @@ class DspaceAuthService():
                 # cookie_data=cookie
             )
             logger.info(f"Login successful for user: {email}")
+            #save jwt/header token to cache
+            data = {
+                
+            }
             return req
             
         except Exception as e:

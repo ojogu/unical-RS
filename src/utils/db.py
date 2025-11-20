@@ -1,15 +1,14 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from .config import config
-from src.v1.base.model import Base, BaseModel
-from src.v1 import model
-from .config import config
+from src.v1.base.model import Base
+from src.v1.model import *
 from sqlalchemy.exc import SQLAlchemyError
-from src.utils.log import setup_logger
 from sqlalchemy.pool import NullPool
 from contextlib import asynccontextmanager
 
-logger = setup_logger(__name__, file_path="error.log")
+from src.utils.log import setup_logger
+logger = setup_logger(__name__, file_path="db.log")
 
 # Create async engine
 engine = create_async_engine(
@@ -88,6 +87,7 @@ async def init_db():
         async with engine.begin() as conn:
             # Use run_sync to call the synchronous create_all method in an async context
             await conn.run_sync(Base.metadata.create_all)
+            print(Base.metadata.tables.keys())
     except SQLAlchemyError as e:
         logger.error(f"error creating the db: {e}")
 

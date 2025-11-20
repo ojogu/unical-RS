@@ -23,7 +23,8 @@ from src.v1.base.exception import (
     ServerError,
     NotActive, 
     BaseExceptionClass,
-    DSpaceError
+    DSpaceError, 
+    AuthorizationError
     
     
 )
@@ -42,9 +43,9 @@ def create_exception_handler(
         # Log the exception details
         exception_logger.error(f"Exception occurred: {str(exc)}")
 
-        # Copy initial detail and override the message dynamically
+        # Copy initial detail and override the message dynamically only if provided
         response_payload = initial_detail.copy()
-        if hasattr(exc, "message"):
+        if hasattr(exc, "message") and exc.message is not None:
             response_payload["message"] = str(exc.message)
 
         # Validate the response payload using ErrorResponse schema
@@ -88,14 +89,43 @@ def register_error_handlers(app: FastAPI):
         )
     )
     
+    
     app.add_exception_handler(
         InvalidToken,
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
                 "status": "error",
-                "message": "Invalid token",
-                "error_code": "access or refresh token invalid",
+                "message": "access or refresh token invalid",
+                "error_code": "Invalid_token",
+                "data": None,
+                "role": None
+            }
+        )
+    )
+    
+    app.add_exception_handler(
+        AuthorizationError, 
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "status": "error",
+                # 3. Update the message to reflect the 403 error
+                "message": "forbidden - user lacks required permissions",
+                "error_code": "Forbidden_error",
+                "data": None,
+                "role": None
+            }
+        )
+    )
+    app.add_exception_handler(
+        InvalidToken,
+        create_exception_handler(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            initial_detail={
+                "status": "error",
+                "message": "access or refresh token invalid",
+                "error_code": "Invalid_token",
                 "data": None,
                 "role": None
             }

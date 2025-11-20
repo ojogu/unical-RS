@@ -1,26 +1,31 @@
-import sqlalchemy as sa
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Enum as SqlEnum, Integer, Float, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 from datetime import datetime
 from src.v1.base.model import BaseModel
+from .roles import user_roles
 
-class Admin(BaseModel):
-    __tablename__ = "admins"
+
+class User(BaseModel):
+    first_name: Mapped[str] = mapped_column(String, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    dspace_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    dspace_special_group: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
+    is_deleted: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
     
-class Visitor(BaseModel):
-    __tablename__ = "visitors"
-    
-class Libarian(BaseModel):
-    __tablename__ = "libarians"
-    
-class Student(BaseModel):
-    __tablename__ = "students"
-    
-class Staff(BaseModel):
-    __tablename__ = "staff"
-    
+    # Each user → many roles
+    roles = relationship(
+        "Role",
+        secondary=user_roles,
+        backref="users",
+        lazy="selectin"
+    )
+
+
 class Resource(BaseModel):
-    __tablename__ = "staff"
-    
+    pass
+
 class MetaData(BaseModel):
-    __tablename__ = "staff"
-
-
+    pass

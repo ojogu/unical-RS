@@ -13,6 +13,7 @@ dependencies = [
     "requests>=2.32.5",
     "rich>=14.1.0",
     "sqlalchemy>=2.0.43",
+    "watchfiles>=1.1.0",
 ]
 
 [dependency-groups]

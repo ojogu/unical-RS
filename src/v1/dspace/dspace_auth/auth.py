@@ -18,15 +18,14 @@ class DspaceAuthService():
     async def login(self, email: str, password: str):
         try:
             logger.info(f"Attempting login for user: {email}")
-            token:dict = await self._fetch_csrf_token(email)
-            xsrf_token = token.get("auth_cookie")
+            #fetch a new token for every login 
+            token = await dspace_client.get_csrf_token()
+            # token:dict = await self._fetch_csrf_token(email)
+            
+            xsrf_token = token.get("DSPACE-XSRF-TOKEN")
             headers = {
                 "X-XSRF-TOKEN": xsrf_token,
                 "Content-Type": "application/x-www-form-urlencoded",
-            }
-            #package cookie
-            cookie = {
-                "DSPACE-XSRF-COOKIE": xsrf_token
             }
             
             payload = {
@@ -43,7 +42,7 @@ class DspaceAuthService():
             # Rename "email" to "user"
             validated_data["user"] = validated_data.pop("email")
             logger.info(f"validated data: {validated_data}")
-            req = await dspace_client._make_request(
+            req, res_headers = await dspace_client._make_request(
                 http_method="post",
                 endpoint="authn/login",
                 data=validated_data,
@@ -51,10 +50,18 @@ class DspaceAuthService():
                 # cookie_data=cookie
             )
             logger.info(f"Login successful for user: {email}")
-            #save jwt/header token to cache
+            logger.debug(f"headers: {res_headers}")
+            logger.debug(f"res body: {req}")
+            
+            #update jwt/header token to from header, so can access for other endpoints
+            new_token = res_headers.get("DSPACE-XSRF-TOKEN")
+            jwt_token = res_headers.get("Authorization")
             data = {
-                
+                "DSPACE-XSRF-TOKEN":new_token,
+                "jwt_token": jwt_token 
             }
+            await set_cache(email, data)
+            
             return req
             
         except Exception as e:
@@ -67,6 +74,7 @@ class DspaceAuthService():
     
     @staticmethod
     async def _fetch_csrf_token(email: str):
+        #this methods fetches token from the cache, or make a request to get a new one
         try:
             token = await get_or_fetch_cache(str(email), dspace_client.get_csrf_token)
             logger.debug(f"CSRF token fetched for {email}. Token:{token}")

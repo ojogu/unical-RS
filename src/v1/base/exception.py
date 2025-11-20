@@ -52,8 +52,9 @@ class DatabaseError(BaseExceptionClass):
 class ServerError(BaseExceptionClass):
     pass
 
-
 class NotActive(BaseExceptionClass):
+    pass
+class AuthorizationError(BaseExceptionClass):
     pass
 
 class DSpaceError(BaseExceptionClass):

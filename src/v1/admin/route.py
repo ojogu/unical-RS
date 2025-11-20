@@ -21,3 +21,8 @@ async def login(data: Login):
     return req_login
         
         # raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@dspace_auth_router.post("/register")
+async def register(data:Register):
+    #in a normal flow, only already existing admin can register new users, so before trying to create a new user, we'll authenticate with our super admin details, and grab the auth tokens, which would enable us create user
+    pass 

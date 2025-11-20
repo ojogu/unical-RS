@@ -41,7 +41,7 @@ class Client:
         headers.setdefault("Content-Type", "application/json")
 
 
-            
+      
         # Optional token (jwt for authentication)
         if token:
             headers["Authorization"] = f"Bearer {token}"
@@ -75,7 +75,7 @@ class Client:
 
         try:
             async with self.session.request(**request_kwargs) as response:
-                response_headers = response.headers
+                response_headers = dict(response.headers)
                 return await self._handle_response(response, response_headers)
 
         except aiohttp.ClientResponseError as e:
@@ -155,8 +155,7 @@ class Client:
                 raise DSpaceError("CSRF token not found in response headers")
             logger.debug(f"cookie value: {cookie_value}")
             session_data = {
-            "auth_cookie": self.csrf_token,
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+            "DSPACE-XSRF-TOKEN": self.csrf_token,
         }
             return session_data
         

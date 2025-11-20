@@ -7,7 +7,7 @@ from src.utils.config import config
 from src.utils.log import setup_logger
 logger = setup_logger(__name__, "redis.log")
 
-CACHE_TTL = 60 * 10   # 10 mins
+CACHE_TTL = 60 * 2  # 10 mins
 REDIS_URL = config.redis_url
 
 _redis: Optional[redis.Redis] = None
@@ -37,7 +37,7 @@ async def get_or_fetch_cache(key: str, fetch_callback: callable, ttl: int = CACH
 
     cached = await redis.get(key)
     if cached:
-        logger.debug(f"Cache hit for key: {key}")
+        logger.debug(f"Cache hit for key: {key}, value {cached}")
         return json.loads(cached)
 
     # fetch fresh data
@@ -72,43 +72,43 @@ async def set_cache(key: str, data, ttl: int = CACHE_TTL) -> bool:
         logger.error(f"Failed to write cache for key {key}: {e}")
         return False
     
-if __name__ == "__main__":
-    import asyncio
-    import json
-    from redis.asyncio import Redis
+# if __name__ == "__main__":
+#     import asyncio
+#     import json
+#     from redis.asyncio import Redis
 
-    async def main():
-        r = Redis(host="localhost", port=6379, decode_responses=True)
+#     async def main():
+#         r = Redis(host="localhost", port=6379, decode_responses=True)
         
-        # write key
-        key = "test_user"
-        data = {"auth_cookie": "abc123", "expires_at": "tomorrow"}
-        await r.set(key, json.dumps(data), ex=60)
-        print("Key set successfully")
+#         # write key
+#         key = "test_user"
+#         data = {"auth_cookie": "abc123", "expires_at": "tomorrow"}
+#         await r.set(key, json.dumps(data), ex=60)
+#         print("Key set successfully")
         
-        # read key immediately
-        val = await r.get(key)
-        print("Read value:", val)
+#         # read key immediately
+#         val = await r.get(key)
+#         print("Read value:", val)
         
-        # check TTL
-        print("TTL:", await r.ttl(key))
+#         # check TTL
+#         print("TTL:", await r.ttl(key))
         
-        # list all keys
-        print("Keys:", await r.keys("*"))
+#         # list all keys
+#         print("Keys:", await r.keys("*"))
 
-    asyncio.run(main())
-    # import asyncio
+#     asyncio.run(main())
+#     # import asyncio
 
-    # async def main():
-    #     await setup_redis()
-    #     r = await get_redis()
+#     # async def main():
+#     #     await setup_redis()
+#     #     r = await get_redis()
 
-    #     print("Connected to:", r.connection_pool.connection_kwargs)
+#     #     print("Connected to:", r.connection_pool.connection_kwargs)
 
-    #     await r.set("debug_test", "hello")
-    #     print("TTL debug_test:", await r.ttl("debug_test"))
-    #     print("Exists:", await r.exists("debug_test"))
-    #     print(await r.keys("*"))
+#     #     await r.set("debug_test", "hello")
+#     #     print("TTL debug_test:", await r.ttl("debug_test"))
+#     #     print("Exists:", await r.exists("debug_test"))
+#     #     print(await r.keys("*"))
 
 
-    # asyncio.run(main())
+#     # asyncio.run(main())

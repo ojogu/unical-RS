@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 # from utils.db import init_db
 from src.utils.db import init_db, drop_db
 from src.utils.redis_client import setup_redis
-from src.v1.auth.auth import auth_router
+from src.v1.auth.auth import user_auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.utils.config import Settings 
 from src.utils.exception import register_error_handlers
-from src.v1.admin.route import dspace_auth_router
-
+from src.v1.dspace.dspace_auth.route import dspace_auth_router
+from src.v1.admin.route import admin_router, super_admin_router
 @asynccontextmanager
 async def life_span(app: FastAPI):
     """
@@ -43,7 +43,10 @@ async def life_span(app: FastAPI):
     print("server is ending.....")
 
 app = FastAPI(
-    lifespan=life_span
+    lifespan=life_span,
+    title=Settings.PROJECT_NAME,
+    version=Settings.PROJECT_VERSION,
+    description=Settings.PROJECT_DESCRIPTION
 )
 
 app.add_middleware(
@@ -58,8 +61,11 @@ app.add_middleware(
 register_error_handlers(app)
 
 #register routers/blueprint
-app.include_router(auth_router)
-app.include_router(dspace_auth_router)
+app.include_router(user_auth_router, prefix=Settings.API_PREFIX)
+app.include_router(dspace_auth_router, prefix=Settings.API_PREFIX)
+app.include_router(super_admin_router, prefix=Settings.API_PREFIX)
+app.include_router(admin_router, prefix=Settings.API_PREFIX)
+
 
 
 @app.get("/")

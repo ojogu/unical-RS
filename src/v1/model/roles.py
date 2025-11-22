@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.v1.base.model import BaseModel
 from enum import StrEnum
 
-
+#junction table (users->roles)
 user_roles = Table(
     "user_roles",
     BaseModel.metadata,
@@ -11,6 +11,7 @@ user_roles = Table(
     Column("role_id", ForeignKey("roles.id"), primary_key=True),
 )
 
+#junction table (roles->permission)
 role_permissions = Table(
     "role_permissions",
     BaseModel.metadata,
@@ -19,11 +20,12 @@ role_permissions = Table(
 )
 
 
+#many to many relation with permission
 class Role(BaseModel):
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     description: Mapped[str] = mapped_column(String, nullable=True)
 
-    permissions = relationship(
+    permissions: Mapped[list["Permission"]] = relationship(
         "Permission", secondary=role_permissions, backref="roles", lazy="selectin"
     )
 

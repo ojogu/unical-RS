@@ -1,28 +1,42 @@
-#dspace auth routes
-from fastapi import APIRouter, HTTPException, status 
-from src.v1.dspace.dspace_auth.auth import dspace_auth_service
-from src.v1.schema.auth import Register, Login
-from src.utils.log import setup_logger
+from fastapi import APIRouter, Depends
+from .service import SuperAdminService, AdminService
+from src.utils.db import get_session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = setup_logger(__name__, "dspace_auth_routes.log")
+def get_admin_service(db: AsyncSession = Depends(get_session)):
+    return AdminService(db=db)
 
-# auth for implement admin endpoints, or use http client to access this
-dspace_auth_router = APIRouter(prefix="/admin")
+def get_super_admin_service(db: AsyncSession = Depends(get_session)):
+    return SuperAdminService(db=db)
 
-@dspace_auth_router.post("/login")
-async def login(data: Login):
-    email = data.email
-    password = data.password
-        
-    logger.info(f"Login attempt for user: {email}")
-    req_login = await dspace_auth_service.login(email, password)
-    logger.info(f"Successful login for user: {email}")
-        
-    return req_login
-        
-        # raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@dspace_auth_router.post("/register")
-async def register(data:Register):
-    #in a normal flow, only already existing admin can register new users, so before trying to create a new user, we'll authenticate with our super admin details, and grab the auth tokens, which would enable us create user
+# Super Admin Router
+super_admin_router = APIRouter(
+    prefix="/super-admin",
+    tags=["super-admin"]
+)
+
+
+#routes
+@super_admin_router.get("/", tags=["auth"])
+async def super_admin_dashboard():
+    """Super admin dashboard endpoint"""
+    return {"message": "Super Admin Dashboard"}
+
+
+@super_admin_router.get("/permission")
+async def fetch_all_permission(super_admin_service:SuperAdminService = Depends(get_super_admin_service)):
     pass 
+
+
+
+
+# Admin Router
+admin_router = APIRouter(
+    prefix="admin",
+    tags=["admin"]
+)
+@admin_router.get("/", tags=["auth"])
+async def admin_dashboard():
+    """Admin dashboard endpoint"""
+    return {"message": "Admin Dashboard"}

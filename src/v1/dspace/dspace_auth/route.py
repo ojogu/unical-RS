@@ -1,0 +1,34 @@
+#dspace auth routes
+from fastapi import APIRouter, HTTPException, status 
+from src.v1.dspace.dspace_auth.auth import dspace_auth_service
+from src.v1.schema.auth import Register, Login
+from src.utils.log import setup_logger
+
+logger = setup_logger(__name__, "dspace_auth_routes.log")
+
+# auth for implement admin endpoints for testing, or use http client to access this
+dspace_auth_router = APIRouter(prefix="/dspace", tags=["DSpace"])
+
+@dspace_auth_router.post("/login", tags=["auth"])
+async def login(data: Login):
+    email = data.email
+    password = data.password
+        
+    logger.info(f"Login attempt for user: {email}")
+    req_login = await dspace_auth_service.login(email, password)
+    logger.info(f"Successful login for user: {email}")
+        
+    return req_login
+        
+        # raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@dspace_auth_router.post("/register", tags=["auth"])
+async def register(data:Register):
+    #in a normal flow, only already existing admin can register new users, so before trying to create a new user, we'll authenticate with our super admin details, and grab the auth tokens, which would enable us create user
+    
+    #super admin creates admins and other admin roles like libarians etc
+    pass 
+
+
+
+

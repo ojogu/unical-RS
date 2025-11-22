@@ -2,7 +2,7 @@ from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Enum as SqlE
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 from datetime import datetime
 from src.v1.base.model import BaseModel
-from .roles import user_roles
+from .roles import user_roles, Role
 
 
 class User(BaseModel):
@@ -15,8 +15,7 @@ class User(BaseModel):
     is_active: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
     is_deleted: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
     
-    # Each user → many roles
-    roles = relationship(
+    roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary=user_roles,
         backref="users",

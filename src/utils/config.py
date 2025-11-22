@@ -11,6 +11,9 @@ class Config(BaseSettings):
     refresh_token_expiry:int
     # frontend_url:str
     celery_beat_interval:int
+    #super super admin details for dspace 
+    base_username:str
+    base_password:str
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
@@ -24,3 +27,4 @@ class Settings:
     PROJECT_NAME: str = "Unical Insitutional Repository"
     PROJECT_VERSION: str = "1.0.0"
     PROJECT_DESCRIPTION: str = "Backend for Unical Insitutional Repository"
+    API_PREFIX: str = "/api/v1"

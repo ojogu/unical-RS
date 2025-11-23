@@ -119,7 +119,7 @@ class SuperAdminService():
             permissions = await self.db.execute(select(Permission))
             result = permissions.scalars().all()
             logger.info(f"Successfully fetched {len(result)} permissions")
-            return result if result else []
+            return ValidatePermissions(result).model_dump() if result else []
         except SQLAlchemyError as e:
             logger.error(f"Database error fetching all permissions: {str(e)}")
             raise DatabaseError(f"Error fetching permissions: {str(e)}")

@@ -26,14 +26,15 @@ async def super_admin_dashboard():
 
 @super_admin_router.get("/permission")
 async def fetch_all_permission(super_admin_service:SuperAdminService = Depends(get_super_admin_service)):
-    pass 
+    permission = await super_admin_service.fetch_all_permission() 
+    return permission
 
 
 
 
 # Admin Router
 admin_router = APIRouter(
-    prefix="admin",
+    prefix="/admin",
     tags=["admin"]
 )
 @admin_router.get("/", tags=["auth"])

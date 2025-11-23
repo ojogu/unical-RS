@@ -3,13 +3,17 @@ from typing import List
 class CreatePermission(BaseModel):
     name: str 
     description: str
+    class Config:
+        from_attributes = True
 class CreateRole(BaseModel):
     name: str 
     description: str
     
 class ValidatePermissions(BaseModel):
-    permissions: List[CreatePermission] 
-    
+    permissions: List[CreatePermission]
+    class Config:
+        from_attributes = True
+
 
 # eg data
 # data = {
@@ -25,3 +29,5 @@ class ValidatePermissions(BaseModel):
 # # Accessing the list:
 # print(validated_data.permissions)
 # # Output: [CreatePermission(name='READ_USERS', ...), CreatePermission(name='WRITE_POSTS', ...)]
+
+

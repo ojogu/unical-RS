@@ -4,6 +4,11 @@ from src.utils.db import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schema import CreatePermission, CreateRole, ValidatePermissions
 from src.utils.response import success_response
+from src.utils.log import setup_logger
+logger = setup_logger(__name__, file_path="admin.log")
+
+
+
 def get_admin_service(db: AsyncSession = Depends(get_session)):
     return AdminService(db=db)
 
@@ -57,8 +62,9 @@ super_admin_service:SuperAdminService = Depends(get_super_admin_service)
     else:
         response = success_response(
             status_code=status.HTTP_200_OK,
-            data=[role.to_dict() for role in roles]
+            data=roles
         )
+    # logger.info(f"{[role.to_dict() for role in roles]}")
     return response
 
 

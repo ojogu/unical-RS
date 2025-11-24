@@ -8,7 +8,7 @@ from src.v1.base.exception import (
     NotFoundError,
     AuthorizationError
 )
-from .schema import CreatePermission, CreateRole, ValidatePermissions
+from .schema import CreatePermission, CreateRole, ValidatePermissions, CreateUser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from src.utils.log import setup_logger
 logger = setup_logger(__name__, file_path="admin.log")
@@ -25,6 +25,10 @@ class SuperAdminService():
         self.db = db
     
     # ============ User Operations ============
+    
+    async def create_user(self, create_user_data:CreateUser):
+        pass
+    
     async def fetch_user(self, user_id: str) -> User:
         try:
             logger.debug(f"Fetching user: {user_id}")
@@ -133,14 +137,43 @@ class SuperAdminService():
             logger.error(f"Database error fetching role '{role_name}': {str(e)}")
             raise DatabaseError(f"Error fetching role: {str(e)}")
     
+    async def fetch_role_with_permission(self, role_name:str):
+        roles = await self.db.execute(
+            select(Role).join(Role.permissions).where(Role.name.ilike(role_name))
+            )
+        result = roles.scalar_one_or_none()
+        if not result:
+            logger.warning(f"Role '{role_name}' not found")
+            raise NotFoundError(f"Role '{role_name}' does not exist")
+        logger.info(f"Successfully fetched role with permissions: {role_name}")
+        role_data = {
+            "role": result.to_dict(),
+            "permissions": [
+            {"id": p.id, "name": p.name, "description": p.description} for p in result.permissions 
+            ]}
+        return role_data
+    
     async def fetch_all_roles(self) -> list[Role]:
         try:
-            #TODO return the permissions too
             logger.debug("Fetching all roles")
-            roles = await self.db.execute(select(Role))
-            result = roles.scalars().all()
+            roles = await self.db.execute(
+                select(Role).outerjoin(Role.permissions)
+            )
+            result = roles.unique().scalars().all()
             logger.info(f"Successfully fetched {len(result)} roles")
-            return result
+            if not result:
+                return []
+            data_to_serialize = []
+            for role in result:
+                role_data = {
+                "role": role.to_dict(),
+                "permissions": [
+                {"id": p.id, "name": p.name, "description": p.description} for p in role.permissions 
+                ]}
+                data_to_serialize.append(role_data)
+            logger.info(f"role data: {role_data}")
+            return data_to_serialize
+
         except SQLAlchemyError as e:
             logger.error(f"Database error fetching all roles: {str(e)}")
             raise DatabaseError(f"Error fetching roles: {str(e)}")

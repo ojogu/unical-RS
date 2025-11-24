@@ -23,6 +23,10 @@ class ValidateRoles(BaseModel):
     class Config:
         from_attributes = True
 
+class CreateUser(BaseModel):
+    email:str
+    password:str
+    role: CreateRole
 
 # eg data
 # data = {

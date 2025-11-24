@@ -5,12 +5,21 @@ class CreatePermission(BaseModel):
     description: str
     class Config:
         from_attributes = True
+        
 class CreateRole(BaseModel):
     name: str 
     description: str
+    permissions: List[CreatePermission]
+    class Config:
+        from_attributes = True
     
 class ValidatePermissions(BaseModel):
     permissions: List[CreatePermission]
+    class Config:
+        from_attributes = True
+        
+class ValidateRoles(BaseModel):
+    roles: List[CreateRole]
     class Config:
         from_attributes = True
 

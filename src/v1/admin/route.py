@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from .service import SuperAdminService, AdminService
 from src.utils.db import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from .schema import CreatePermission, CreateRole, ValidatePermissions
+from src.utils.response import success_response
 def get_admin_service(db: AsyncSession = Depends(get_session)):
     return AdminService(db=db)
 
@@ -30,6 +31,35 @@ async def fetch_all_permission(super_admin_service:SuperAdminService = Depends(g
     return permission
 
 
+@super_admin_router.post("/create-role")
+#auth decorator here
+async def create_role(data:CreateRole,
+super_admin_service:SuperAdminService = Depends(get_super_admin_service)
+):
+    new_role =  await super_admin_service.create_roles(data)
+    response = success_response(
+        status_code=status.HTTP_201_CREATED,
+        data = new_role.to_dict()
+    )
+    return response
+
+@super_admin_router.get("/fetch-role")
+#auth decorator here
+async def fetch_all_roles(
+super_admin_service:SuperAdminService = Depends(get_super_admin_service)
+):
+    roles =  await super_admin_service.fetch_all_roles()
+    if not roles:
+        response = success_response(
+            status_code=status.HTTP_200_OK,
+            data=[]
+        )
+    else:
+        response = success_response(
+            status_code=status.HTTP_200_OK,
+            data=[role.to_dict() for role in roles]
+        )
+    return response
 
 
 # Admin Router

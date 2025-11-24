@@ -9,8 +9,6 @@ from typing import (  # Import Generic, List, TypeVar
 from pydantic import BaseModel, ConfigDict
 
 
-
-
 class ErrorResponse(BaseModel):
     status: str = "error"
     message: str
@@ -19,3 +17,11 @@ class ErrorResponse(BaseModel):
     data: Optional[Any] = None
     role: Optional[str] = None
 
+class SuccessResponse(BaseModel):
+    status:str = "success"
+    message:str
+    data: Optional[Any] = None
+    role: Optional[str] = None
+
+
+#constant messages

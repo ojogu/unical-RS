@@ -2,7 +2,6 @@ from typing import List, Any
 from src.v1.model import User, Role, Permission, PermissionType
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, update
-
 from src.v1.base.exception import (
     AlreadyExistsError,
     DatabaseError,
@@ -59,48 +58,101 @@ class SuperAdminService():
             logger.error(f"Database error checking if role '{role_name}' exists: {str(e)}")
             raise DatabaseError(f"Error checking role existence: {str(e)}")
     
-    async def create_roles(self, user_id, permission: list[str], **role_data: dict[str, Any]):
-        validated_role_data = CreateRole(**role_data)
+    async def create_roles(self, role_data: CreateRole):
+        try:
+            logger.debug(f"Starting to create role: {role_data.name}")
+            #put user_id later on
+            # validated_role_data = CreateRole(**role_data)
+            
+            #check if role exist 
+            is_existing = await self.check_if_roles_exist(role_data.name)
+            if is_existing:
+                logger.warning(f"Role '{role_data.name}' already exists")
+                raise AlreadyExistsError(f"'{role_data.name}' Role already exist")
+            
+            #fetch the user trying to create a role, to verify if his role has the permission
+            # user = await self.fetch_user(user_id)
+            
+            # user_permission = await self.get_user_permissions(user.id)
+            # if PermissionType.CREATE_ROLE not in user_permission:
+            #     raise AuthorizationError()
+            
+            
+            #validate and convert permission into a list i.e to handle roles with multiple permission
+            validate_permission:ValidatePermissions = ValidatePermissions(permissions=role_data.permissions)
+            permission_list = validate_permission.permissions if hasattr(validate_permission, 'permissions') else list(validate_permission)
+            
+            # list to hold the actual Permission model instances
+            existing_permissions = []
+            
+            #loop through the permission list
+            for permission in permission_list:
+                permission_exist = await self.fetch_one_permission(permission.name)
+                if not permission_exist:
+                    logger.warning(f"Permission '{permission.name}' does not exist")
+                    raise NotFoundError(f"{permission.name} permission does not exist")
+                
+                existing_permissions.append(permission_exist)
+            
+            #creates roles with it's permission
+            logger.debug(f"Creating role with data - Name: {role_data.name}, Description: {role_data.description}")
+            logger.debug(f"Permissions to assign: {existing_permissions}")
+            
+            new_role = Role(
+                name=role_data.name,
+                description = role_data.description,
+                permissions = existing_permissions
+            )
+            self.db.add(new_role)
+            await self.db.commit()
+            
+            logger.debug(f"Role object created: {new_role.to_dict()}")
+            return new_role
+        except (AlreadyExistsError, NotFoundError, AuthorizationError):
+            raise
+        except SQLAlchemyError as e:
+            logger.error(f"Database error creating role '{role_data.name}': {str(e)}")
+            raise DatabaseError(f"Error creating role: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error creating role '{role_data.name}': {str(e)}")
+            raise
         
-        #check if role exist 
-        is_existing = await self.check_if_roles_exist(validated_role_data.name)
-        if is_existing:
-            raise AlreadyExistsError(f"'{validated_role_data.name}' Role already exist")
-        
-        #fetch the user trying to create a role, to verify if his role has the permission
-        user = await self.fetch_user(user_id)
-        
-        user_permission = await self.get_user_permissions(user.id)
-        if PermissionType.CREATE_ROLE not in user_permission:
-            raise AuthorizationError()
-        
-        
-        #validate and convert permission into a list i.e to handle roles with multiple permission
-        validate_permission:ValidatePermissions = ValidatePermissions(permissions=permission)
-        permission_list = validate_permission.permissions if hasattr(validate_permission, 'permissions') else list(validate_permission)
-        
-        #loop through the permission list
-        for permission in permission_list:
-            permission_exist = await self.fetch_one_permission(permission.name)
-            if not permission_exist:
-                raise NotFoundError(f"{permission.name} permission does not exist")
-        
-        #creates roles with it's permission
-        new_role = Role(
-            name=validated_role_data.name,
-            description = validated_role_data.description,
-            permission = [p.name for p in permission_list]
-        )
-        return new_role
-
-        
+    async def fetch_one_role(self, role_name: str) -> Role | None:
+        try:
+            logger.debug(f"Fetching role: {role_name}")
+            role = await self.db.execute(
+                select(Role).where(Role.name.ilike(role_name))
+            )
+            result = role.scalar_one_or_none()
+            if not result:
+                logger.warning(f"Role '{role_name}' not found")
+                raise NotFoundError(f"Role '{role_name}' does not exist")
+            logger.info(f"Successfully fetched role: {role_name}")
+            return result
+        except SQLAlchemyError as e:
+            logger.error(f"Database error fetching role '{role_name}': {str(e)}")
+            raise DatabaseError(f"Error fetching role: {str(e)}")
+    
+    async def fetch_all_roles(self) -> list[Role]:
+        try:
+            #TODO return the permissions too
+            logger.debug("Fetching all roles")
+            roles = await self.db.execute(select(Role))
+            result = roles.scalars().all()
+            logger.info(f"Successfully fetched {len(result)} roles")
+            return result
+        except SQLAlchemyError as e:
+            logger.error(f"Database error fetching all roles: {str(e)}")
+            raise DatabaseError(f"Error fetching roles: {str(e)}")
+    
     # ============ Permission Operations ============
     async def fetch_one_permission(self, permission_name: str) -> Permission | None:
         try:
+            #TODO return the permissions too
             logger.debug(f"Fetching permission: {permission_name}")
             permission = await self.db.execute(
                 select(Permission).where(
-                    Permission.name == permission_name
+                    Permission.name.ilike(permission_name)
                 )
             )
             result = permission.scalar_one_or_none()
@@ -116,10 +168,12 @@ class SuperAdminService():
     async def fetch_all_permission(self) -> list[Permission]:
         try:
             logger.debug("Fetching all permissions")
+            #do caching to prevent frequent database request since it's mostly a read operation  
             permissions = await self.db.execute(select(Permission))
             result = permissions.scalars().all()
             logger.info(f"Successfully fetched {len(result)} permissions")
-            return ValidatePermissions(result).model_dump() if result else []
+            data= ValidatePermissions(permissions=result).model_dump() if result else []
+            return data
         except SQLAlchemyError as e:
             logger.error(f"Database error fetching all permissions: {str(e)}")
             raise DatabaseError(f"Error fetching permissions: {str(e)}")
@@ -185,6 +239,10 @@ class SuperAdminService():
         
         
         
-        
+#TODO: create super admin and give all permission.
+#TODO: work on authentication and authorization, protected endpoints. Login/logout. Registration for normal users (students/lecturer), super admin/admin creating roles like libarians etc
+#TODO: work on authentication and authorization, protected endpoints.
+
+
         
     

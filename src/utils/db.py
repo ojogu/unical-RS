@@ -64,7 +64,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception as e:
-            logger.error(f"Database session error: {e}")
+            logger.error(f"Database error: {e}")
             await session.rollback()
             raise
         finally:

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import aiohttp
-from typing import Dict, Any
+from typing import Dict, Any, Optional 
 from src.utils.config import config
 from src.utils.http_config import http_client
 import json
@@ -10,6 +10,7 @@ from src.v1.base.exception import (
 )
 logger = setup_logger(__name__, "client.log")
 
+#decorator pattern for retry
 
 class Client:
     """This module handles making requests to DSpace to access its infrastructure"""
@@ -22,12 +23,12 @@ class Client:
     async def _make_request(
         self,
         http_method: str,
-        req_headers: Dict,
         endpoint: str,
         # params: Dict = None,
         data: Dict = None,
         # cookie_data: Dict = None,
-        token: str = None,
+        req_headers: Optional[Dict]=None,
+        jwt_token: str = None,
         # xrsf_token:str=None 
     ) -> Dict[str, Any]:
         """Make HTTP request to DSpace API"""
@@ -43,8 +44,8 @@ class Client:
 
       
         # Optional token (jwt for authentication)
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        if jwt_token:
+            headers["Authorization"] = jwt_token
 
         # ================= REQUEST DATA =================
         request_kwargs = {

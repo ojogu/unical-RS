@@ -271,7 +271,7 @@ class SuperAdminService():
         
         
         
-        
+#BLOCKER: authentication process (verify from school db, or approval authentication where admins approves)
 #TODO: create super admin and give all permission.
 #TODO: work on authentication and authorization, protected endpoints. Login/logout. Registration for normal users (students/lecturer), super admin/admin creating roles like libarians etc
 #TODO: work on authentication and authorization, protected endpoints.

@@ -1,7 +1,7 @@
 from src.v1.dspace.client import dspace_client
 from src.utils.redis_client import set_cache, get_or_fetch_cache
 from src.utils.config import config
-from src.v1.schema.auth import Login, CreateUser, EPersonCreate
+from src.v1.auth.schema import Login, CreateUser, EPersonCreate
 from src.utils.log import setup_logger
 from src.v1.base.exception import (
     BadRequest,

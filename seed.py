@@ -2,7 +2,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 from src.utils.db import get_session
-from src.v1.model.roles import Role, Permission, PermissionType, PERMISSION_DESCRIPTIONS
+from src.v1.model.roles import Role, Permission, PermissionType, PERMISSION_DESCRIPTIONS, Role_Enum
 
 async def seed_permissions(session: AsyncSession):
     print("Seeding permissions...")
@@ -27,12 +27,12 @@ async def seed_roles(session: AsyncSession):
     
     # Define roles and their associated permissions
     roles_data = {
-        "admin": {
+        Role_Enum.SUPER_ADMIN: {
             "description": "Administrator role with full access.",
             "permissions": list(PERMISSION_DESCRIPTIONS.keys()) # All permissions
         },
-        "librarian": {
-            "description": "Librarian role with resource management permissions.",
+        Role_Enum.ADMIN: {
+            "description": "Admin role with resource management permissions.",
             "permissions": [
                 PermissionType.CREATE_RESOURCE,
                 PermissionType.READ_RESOURCE,
@@ -44,7 +44,27 @@ async def seed_roles(session: AsyncSession):
                 PermissionType.READ_ROLE # Librarians should be able to read roles
             ]
         },
-        "user": {
+        Role_Enum.STUDENT: {
+            "description": "student role with ability to write and read resource",
+            "permissions": [
+                PermissionType.CREATE_RESOURCE,
+                PermissionType.READ_RESOURCE,
+                PermissionType.UPDATE_RESOURCE,
+                PermissionType.DELETE_RESOURCE,
+            ]
+        },
+        
+        Role_Enum.LECTURER: {
+            "description": "lecturer role with ability to write and read resource",
+            "permissions": [
+                PermissionType.CREATE_RESOURCE,
+                PermissionType.READ_RESOURCE,
+                PermissionType.UPDATE_RESOURCE,
+                PermissionType.DELETE_RESOURCE,
+            ]
+        },
+        
+        Role_Enum.USER: {
             "description": "Standard user role with read-only access to resources.",
             "permissions": [
                 PermissionType.READ_RESOURCE
@@ -52,13 +72,13 @@ async def seed_roles(session: AsyncSession):
         }
     }
 
+
     # Fetch all permissions to establish relationships
     permissions_query = await session.execute(sa.select(Permission))
     all_permissions = {p.name: p for p in permissions_query.scalars().all()}
 
     for role_name, data in roles_data.items():
-        role = await session.execute(Role.__table__.select().where(Role.name == role_name))
-        existing_role = role.scalar_one_or_none()
+        existing_role = await session.scalar(sa.select(Role).where(Role.name == role_name))
 
         if not existing_role:
             print(f"Creating role: {role_name}")
@@ -84,7 +104,7 @@ async def seed_roles(session: AsyncSession):
 async def main():
     async for session in get_session():
         await seed_permissions(session)
-        # await seed_roles(session)
+        await seed_roles(session)
         print("Database seeding complete!")
 
 if __name__ == "__main__":

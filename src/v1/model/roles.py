@@ -1,39 +1,7 @@
-from sqlalchemy import Column, ForeignKey, String, Table
+from sqlalchemy import Column, ForeignKey, String, Table, Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.v1.base.model import BaseModel
 from enum import StrEnum
-
-#junction table (users->roles)
-user_roles = Table(
-    "user_roles",
-    BaseModel.metadata,
-    Column("user_id", ForeignKey("users.id"), primary_key=True),
-    Column("role_id", ForeignKey("roles.id"), primary_key=True),
-)
-
-#junction table (roles->permission)
-role_permissions = Table(
-    "role_permissions",
-    BaseModel.metadata,
-    Column("role_id", ForeignKey("roles.id"), primary_key=True),
-    Column("permission_id", ForeignKey("permissions.id"), primary_key=True),
-)
-
-
-#many to many relation with permission
-class Role(BaseModel):
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
-    description: Mapped[str] = mapped_column(String, nullable=True)
-
-    permissions: Mapped[list["Permission"]] = relationship(
-        "Permission", secondary=role_permissions, backref="roles", lazy="selectin"
-    )
-
-
-class Permission(BaseModel):
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
-    description: Mapped[str] = mapped_column(String, nullable=True)
-
 
 
 class PermissionType(StrEnum):
@@ -68,6 +36,49 @@ PERMISSION_DESCRIPTIONS = {
     PermissionType.EDIT_METADATA: "Edit metadata",
 }
 
+class Role_Enum(StrEnum):
+    ADMIN = "admin"
+    USER = "user"
+    SUPER_ADMIN = "super_admin"
+    LECTURER = "lecturer"
+    STUDENT = "student"
+    
+#junction table (users->roles)
+user_roles = Table(
+    "user_roles",
+    BaseModel.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+    Column("role_id", ForeignKey("roles.id"), primary_key=True),
+)
+
+#junction table (roles->permission)
+role_permissions = Table(
+    "role_permissions",
+    BaseModel.metadata,
+    Column("role_id", ForeignKey("roles.id"), primary_key=True),
+    Column("permission_id", ForeignKey("permissions.id"), primary_key=True),
+)
+
+
+#many to many relation with permission
+class Role(BaseModel):
+    name: Mapped[Role_Enum] = mapped_column(
+        SqlEnum(Role_Enum, name="role_enum"),  nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+
+    permissions: Mapped[list["Permission"]] = relationship(
+        "Permission", secondary=role_permissions, backref="roles", lazy="selectin"
+    )
+
+
+class Permission(BaseModel):
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+
+
+
+
+
 
 
 # Role and Permission Management Module
@@ -100,4 +111,3 @@ PERMISSION_DESCRIPTIONS = {
 """
 
 """
-

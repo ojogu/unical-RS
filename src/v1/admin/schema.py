@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List 
+
 class CreatePermission(BaseModel):
     name: str 
     description: str

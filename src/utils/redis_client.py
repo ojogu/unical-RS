@@ -72,6 +72,12 @@ async def set_cache(key: str, data, ttl: int = CACHE_TTL) -> bool:
         logger.error(f"Failed to write cache for key {key}: {e}")
         return False
     
+async def key_exist(key:str):
+    redis = await get_redis()
+    exist = await redis.exists(key)
+    if exist:
+        return True
+    return False
 # if __name__ == "__main__":
 #     import asyncio
 #     import json

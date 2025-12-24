@@ -8,7 +8,7 @@ from src.v1.base.exception import (
     NotFoundError,
     AuthorizationError
 )
-from .schema import CreatePermission, CreateRole, ValidatePermissions, CreateUser
+from .schema import CreatePermission, CreateRole, ValidatePermissions
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from src.utils.log import setup_logger
 logger = setup_logger(__name__, file_path="admin.log")
@@ -26,8 +26,6 @@ class SuperAdminService():
     
     # ============ User Operations ============
     
-    async def create_user(self, create_user_data:CreateUser):
-        pass
     
     async def fetch_user(self, user_id: str) -> User:
         try:

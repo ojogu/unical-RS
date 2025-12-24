@@ -1,4 +1,4 @@
-from src.v1.dspace.client import dspace_client
+from src.v1.dspace.client import DspaceClient
 from src.utils.redis_client import set_cache, get_or_fetch_cache
 from src.utils.config import config
 from src.v1.auth.schema import Login, CreateUser, EPersonCreate
@@ -21,7 +21,9 @@ class HTTPMethod(str, Enum):
     DELETE = "delete"
     HEAD = "head"
     OPTIONS = "options"
-    
+
+dspace_client = DspaceClient()
+
 class DspaceAuthService():
     """this class handles authentication and authorization for dspace"""
     def __init__(self):
@@ -55,6 +57,8 @@ class DspaceAuthService():
             # Rename "email" to "user"
             validated_data["user"] = validated_data.pop("email")
             logger.info(f"validated data: {validated_data}")
+            
+            #well have a retry mechanism 
             req, res_headers = await dspace_client._make_request(
                 http_method=HTTPMethod.POST,
                 endpoint="authn/login",

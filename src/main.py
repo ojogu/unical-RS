@@ -25,9 +25,9 @@ async def life_span(app: FastAPI):
         None: This function yields control back to the application after startup.
     """
     
-    print(f"dropping db....")
-    await drop_db()
-    print(f"db dropped")
+    # print(f"dropping db....")
+    # await drop_db()
+    # print(f"db dropped")
     
     # Startup: Initialize the database
     print("server is starting....")

@@ -251,8 +251,8 @@ def register_error_handlers(app: FastAPI):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             initial_detail={
                 "status": "error",
-                "message": "Dspace error occurred, check logs",
-                "error_code": "dspace_error",
+                "message": "Internal server error",
+                "error_code": "server_error",
                 "data": None,
                 "role": None
             }

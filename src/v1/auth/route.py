@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.utils.redis_client import set_cache
 from src.v1.auth.service import AccessTokenBearer, RefreshTokenBearer, auth_service
 from src.v1.auth.schema import CreateUser
-from src.v1.dspace.client import dspace_client
 from src.utils.response import success_response
 from src.utils.log import setup_logger
 

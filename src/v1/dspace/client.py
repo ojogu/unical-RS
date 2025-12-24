@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 import aiohttp
 from typing import Dict, Any, Optional 
@@ -8,11 +9,43 @@ from src.utils.log import setup_logger
 from src.v1.base.exception import (
     DSpaceError
 )
+import logging 
+from tenacity import (
+    after_log,
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception,
+    before_sleep_log,
+)
 logger = setup_logger(__name__, "client.log")
 
-#decorator pattern for retry
+def log_retry_details(retry_state):
+    """Logs the exact cause of failure before Tenacity sleeps for the next attempt."""
+    exc = retry_state.outcome.exception()
+    attempt = retry_state.attempt_number
+    # We look at the actual error that happened inside the method
+    logger.warning(
+        f"DSpace API Attempt #{attempt} failed. "
+        f"Reason: {type(exc).__name__}: {exc}. "
+        f"Next retry in {retry_state.next_action.sleep:.2f}s"
+    )
+    
+#predicate function for retry
+def is_retryable(exc: Exception) -> bool:
+    """Check if the error warrants a retry."""
+    # Retry on connectivity or timeout issues
+    if isinstance(exc, (asyncio.TimeoutError, aiohttp.ClientConnectionError)):
+        return True
+    
+    # Retry on specific HTTP status codes
+    if isinstance(exc, aiohttp.ClientResponseError):
+        # 429: Too Many Requests, 5xx: Server Errors
+        return exc.status == 429 or exc.status >= 500
+        
+    return False
 
-class Client:
+class DspaceClient:
     """This module handles making requests to DSpace to access its infrastructure"""
 
     def __init__(self):
@@ -20,6 +53,15 @@ class Client:
         self.base_url = config.base_url
         logger.debug(f"Base URL configured as: {self.base_url}")
 
+    #retry logic  
+    @retry(
+        retry=retry_if_exception(is_retryable), # takes the exception and pass it to the predicate function passed, which retries based on logic
+        wait=wait_exponential(multiplier=1, min=2, max=30), #exponetial backoff
+        stop=stop_after_attempt(4), # number of attempts before giving up.
+        before_sleep=log_retry_details, #log failures that are going to be retried.
+        after=after_log(logger, logging.DEBUG), #log after a call that failed
+        reraise=True #ee the exception your code encountered at the end of the stack trace (where it is most visible)
+    )
     async def _make_request(
         self,
         http_method: str,
@@ -74,22 +116,13 @@ class Client:
         # logger.debug(f"Request cookies: {request_kwargs.get("cookies")}")
 
 
-        try:
-            async with self.session.request(**request_kwargs) as response:
-                response_headers = dict(response.headers)
-                return await self._handle_response(response, response_headers)
+        async with self.session.request(**request_kwargs) as response:
+            response_headers = dict(response.headers)
+            return await self._handle_response(response, response_headers)
 
-        except aiohttp.ClientResponseError as e:
-            logger.error(
-                f"API request failed: Status={e.status}, Message={e.message}, "
-                f"URL={e.request_info.real_url}",
-                exc_info=True
-            )
-            raise DSpaceError()
-
-        except Exception as e:
-            logger.error(f"Unexpected error during API request: {str(e)}", exc_info=True)
-            raise DSpaceError()
+        # except Exception as e:
+        #     logger.error(f"Unexpected error during API request: {str(e)}", exc_info=True)
+        #     raise DSpaceError()
 
 
 
@@ -166,4 +199,4 @@ class Client:
     
     
 
-dspace_client = Client()
+# dspace_client = Client()

@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from src.utils.log import setup_logger
-from src.v1.dspace.dspace_auth.service import dspace_auth_service
+from src.v1.dspace.service import dspace_auth_service
 from src.v1.auth.schema import CreateUser, Login
 
 logger = setup_logger(__name__, "dspace_auth_routes.log")

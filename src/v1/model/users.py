@@ -13,6 +13,7 @@ class User(BaseModel):
     dspace_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     dspace_special_group: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
+    is_admin: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
     is_deleted: Mapped[bool]=mapped_column(Boolean, default=False, nullable=False)
     
     roles: Mapped[list["Role"]] = relationship(

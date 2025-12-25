@@ -15,6 +15,10 @@ auth_router = APIRouter(prefix="/auth", tags=["user"])
 async def login():
     pass 
 
+@auth_router.post("/admin-register", tags=["auth"])
+async def admin_register(user_data: CreateUser):
+    pass 
+
 @auth_router.post("/register", tags=["auth"])
 async def register(user_data: CreateUser):
     pass 

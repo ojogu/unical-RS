@@ -24,11 +24,11 @@ class UserService:
         pass
 
     async def create_user(self, user_data: CreateUser):
-        # user = config.base_username
-        # password = config.base_password
-        # use the super admin cred, this is the credwe'll be using to manipulate dspace, eg able to create other users since dspace requires having an authenticated admin jwt to get token to create users on dspace ends.
-        # if school provides an api for id verification, call the service.
+
         
+        #admin have a different endpoint, future update(wait for approval by super admin, or another admin)
+        #student/lecturer share one endpoint, use school api to verify authencity
+        #  school provides an api for id verification, call the service. for lecturers to get info like dept, name, etc 
         user = await self.get_user_by_email(user_data.email)
         if user:
             raise AlreadyExistsError()

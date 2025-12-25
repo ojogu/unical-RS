@@ -15,10 +15,10 @@ _redis: Optional[redis.Redis] = None
 async def setup_redis() -> redis.Redis:
     global _redis
     if _redis is None:
-        logger.info(f"Initializing Redis connection to {REDIS_URL}")
+        # logger.info(f"Initializing Redis connection to {REDIS_URL}")
         try:
             _redis = redis.from_url(REDIS_URL, decode_responses=True)
-            logger.info("Redis connection established successfully")
+            # logger.info("Redis connection established successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Redis connection: {str(e)}")
             raise
@@ -52,6 +52,7 @@ async def get_or_fetch_cache(key: str, fetch_callback: callable, ttl: int = CACH
     verify = await redis.get(key)
     if not verify:
         logger.error(f"Key {key} failed to write!")
+        return
     else:
         logger.debug(f"Key {key} written successfully and readable: {verify}")
 
@@ -78,43 +79,20 @@ async def key_exist(key:str):
     if exist:
         return True
     return False
-# if __name__ == "__main__":
-#     import asyncio
-#     import json
-#     from redis.asyncio import Redis
-
-#     async def main():
-#         r = Redis(host="localhost", port=6379, decode_responses=True)
-        
-#         # write key
-#         key = "test_user"
-#         data = {"auth_cookie": "abc123", "expires_at": "tomorrow"}
-#         await r.set(key, json.dumps(data), ex=60)
-#         print("Key set successfully")
-        
-#         # read key immediately
-#         val = await r.get(key)
-#         print("Read value:", val)
-        
-#         # check TTL
-#         print("TTL:", await r.ttl(key))
-        
-#         # list all keys
-#         print("Keys:", await r.keys("*"))
-
-#     asyncio.run(main())
-#     # import asyncio
-
-#     # async def main():
-#     #     await setup_redis()
-#     #     r = await get_redis()
-
-#     #     print("Connected to:", r.connection_pool.connection_kwargs)
-
-#     #     await r.set("debug_test", "hello")
-#     #     print("TTL debug_test:", await r.ttl("debug_test"))
-#     #     print("Exists:", await r.exists("debug_test"))
-#     #     print(await r.keys("*"))
 
 
-#     # asyncio.run(main())
+async def get_from_cache(key: str):
+    """
+    Retrieve cached data for the given key.
+    Returns the deserialized data if found, None otherwise.
+    """
+    redis = await get_redis()
+    logger.debug(f"Attempting to get cached data for key: {key}")
+
+    cached = await redis.get(key)
+    if cached:
+        logger.debug(f"Cache hit for key: {key}, value {cached}")
+        return json.loads(cached)
+
+    logger.debug(f"Cache miss for key: {key}")
+    return None

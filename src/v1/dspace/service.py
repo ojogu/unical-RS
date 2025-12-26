@@ -94,13 +94,14 @@ class DspaceAuthService():
         try:
             logger.info(f"Attempting to register new user: {user_data.email}")
             
-            base_user = config.base_username
-            base_password = config.base_password
+            # base_user = config.base_username
+            # base_password = config.base_password
             
             # Make the request with base credentials to fetch tokens for user creation
             
             #check redis for token to reduce API call
-            tokens: dict = await self.login(base_user, base_password)
+            tokens:dict = await get_or_fetch_cache(config.base_username, self.login(config.base_username, config.base_password))
+            # tokens: dict = await self.login(base_user, base_password)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
             
@@ -226,17 +227,17 @@ class DspaceGroupService():
         try:
             #groups represents roles
             #it will be an atomic operation to when creating roles from our admin endpoints
-            tokens = await self.auth_service.login(config.base_username, config.base_password)
+            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
 
             if not crsf_token or not jwt_token:
                 logger_group.error("Failed to obtain required tokens for user registration")
-                raise BadRequest()
+                raise DSpaceError()
 
             req, res_headers = await dspace_client._make_request(
                     http_method=HTTPMethod.POST,
-                    endpoint="/api/eperson/groups",
+                    endpoint="eperson/groups",
                     data=group_data.model_dump(exclude="role_name"),
                     jwt_token=jwt_token
                 )
@@ -246,38 +247,194 @@ class DspaceGroupService():
             logger_group.debug(f"Response body: {req}")
 
             return req
-        except (BadRequest,) as e:
-            logger_group.error(f"Failed to create group {group_data.name}: {str(e)}")
-            raise
+        # except (BadRequest,) as e:
+        #     logger_group.error(f"Failed to create group {group_data.name}: {str(e)}")
+        #     raise
         except Exception as e:
             logger_group.error(f"Unexpected error during group creation for {group_data.name}: {str(e)}")
             raise DSpaceError()
 
 
-    async def link_user_to_group(self, user_id, group_id):
-        pass
     
-    async def fetch_single_group(group_id):
-        endpoint:str = f"/api/eperson/groups/{group_id}"
-        pass 
+    async def fetch_single_group(self, group_id:str):
+        try:
+            logger_group.info(f"Fetching single group with ID: {group_id}")
+            req, res_header = await dspace_client._make_request(
+                http_method=HTTPMethod.GET,
+                endpoint=f"eperson/groups/{group_id}"
+            )
+            logger_group.info(f"Group fetched successfully: {group_id}")
+            logger_group.debug(f"Response headers: {res_header}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to fetch group with ID {group_id}: {str(e)}")
+            raise DSpaceError()
+    
+    async def search_group_by_name(self, query):
+        try:
+            logger_group.info(f"Searching for group with query: {query}")
+            
+            #make request
+            req, res_header = await dspace_client._make_request(
+                http_method=HTTPMethod.GET,
+                endpoint="eperson/groups/search/byMetadata",
+                query_params=query
+            )
+            logger_group.info("Group search completed successfully")
+            logger_group.debug(f"Response headers: {res_header}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to search group with query {query}: {str(e)}")
+            raise DSpaceError()
 
-    async def delete_group(group_id):
-        endpoint:str = f"/api/eperson/groups/{group_id}"
-        pass 
+    async def delete_group(self, group_id):
+        try:
+            logger_group.info(f"Attempting to delete group with ID: {group_id}")
+            #fetch tokens
+            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
+            jwt_token = tokens.get("jwt_token")
+
+            if not crsf_token or not jwt_token:
+                logger_group.error("Failed to obtain required tokens for group deletion")
+                raise DSpaceError()
+
+            #make request
+            req, res_headers = await dspace_client._make_request(
+                endpoint=f"eperson/groups/{group_id}",
+                http_method=HTTPMethod.DELETE,
+                jwt_token=jwt_token
+
+            )
+            logger_group.info(f"Group deleted successfully: {group_id}")
+            logger_group.debug(f"Response headers: {res_headers}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to delete group {group_id}: {str(e)}")
+            raise DSpaceError()
+        
+        
+    async def update_group_name(self, group_id, new_name):
+        try:
+            logger_group.info(f"Attempting to update group name for group ID: {group_id}")
+            # Fetch tokens
+            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
+            jwt_token = tokens.get("jwt_token")
+
+            if not crsf_token or not jwt_token:
+                logger_group.error("Failed to obtain required tokens for group name update")
+                raise DSpaceError()
+
+            # Prepare JSON patch data
+            patch_data = [
+                {
+                    "op": "replace",
+                    "path": "/name",
+                    "value": new_name
+                }
+            ]
+
+            # Make PATCH request
+            req, res_headers = await dspace_client._make_request(
+                http_method=HTTPMethod.PATCH,
+                endpoint=f"eperson/groups/{group_id}",
+                data=patch_data,
+                jwt_token=jwt_token
+            )
+
+            logger_group.info(f"Group name updated successfully for group ID: {group_id}")
+            logger_group.debug(f"Response headers: {res_headers}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to update group name for group ID {group_id}: {str(e)}")
+            raise DSpaceError()
     
-    async def update_group(group_id):
+    async def update_metadata(group_id):
         #update meta data and group name (PATCH)
-        endpoint:str = f"/api/eperson/groups/{group_id}"
+        endpoint:str = f"eperson/groups/{group_id}"
         pass 
     
-    async def fetch_users_in_a_group(group_id):
-        endpoint:str = f"/api/eperson/groups/{group_id}/epersons"
-        
+    async def fetch_users_in_a_group(self, group_id):
+        try:
+            logger_group.info(f"Fetching users in group with ID: {group_id}")
+            req, res_headers = await dspace_client._make_request(
+                http_method=HTTPMethod.GET,
+                endpoint=f"eperson/groups/{group_id}/epersons"
+            )
+            logger_group.info(f"Users in group fetched successfully: {group_id}")
+            logger_group.debug(f"Response headers: {res_headers}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to fetch users in group with ID {group_id}: {str(e)}")
+            raise DSpaceError()
+    
+    async def link_user_to_group(self, user_id, group_id):
+        try:
+            logger_group.info(f"Attempting to link user {user_id} to group {group_id}")
+            # Fetch tokens
+            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
+            jwt_token = tokens.get("jwt_token")
+
+            if not crsf_token or not jwt_token:
+                logger_group.error("Failed to obtain required tokens for linking user to group")
+                raise DSpaceError()
+
+            # Prepare user URI
+            user_uri = f"{config.base_url}/eperson/epersons/{user_id}"
+
+            # Make POST request with text/uri-list content type
+            req, res_headers = await dspace_client._make_request(
+                http_method=HTTPMethod.POST,
+                endpoint=f"eperson/groups/{group_id}/epersons",
+                data=user_uri,
+                req_headers={"Content-Type": "text/uri-list"},
+                jwt_token=jwt_token
+            )
+
+            logger_group.info(f"User {user_id} linked to group {group_id} successfully")
+            logger_group.debug(f"Response headers: {res_headers}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to link user {user_id} to group {group_id}: {str(e)}")
+            raise DSpaceError()
+    
     async def change_users_in_a_group(group_id):
-        endpoint:str = f"/api/eperson/groups/{group_id}/epersons" #PUT request
+        endpoint:str = f"eperson/groups/{group_id}/epersons" #PUT request
         
-    async def delete_users_in_a_group(group_id, user_id):
-        endpoint:str = f"/api/eperson/groups/{group_id}/epersons/{user_id}" # note: no bulk update/delete, perform operation 1by1
+    async def remove_user_in_a_group(self, group_id, user_id):
+        try:
+            logger_group.info(f"Attempting to remove user {user_id} from group {group_id}")
+            # Fetch tokens
+            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
+            jwt_token = tokens.get("jwt_token")
+
+            if not crsf_token or not jwt_token:
+                logger_group.error("Failed to obtain required tokens for removing user from group")
+                raise DSpaceError()
+
+            # Make DELETE request
+            req, res_headers = await dspace_client._make_request(
+                http_method=HTTPMethod.DELETE,
+                endpoint=f"eperson/groups/{group_id}/epersons/{user_id}",
+                jwt_token=jwt_token
+            )
+
+            logger_group.info(f"User {user_id} removed from group {group_id} successfully")
+            logger_group.debug(f"Response headers: {res_headers}")
+            logger_group.debug(f"Response body: {req}")
+            return req
+        except Exception as e:
+            logger_group.error(f"Failed to remove user {user_id} from group {group_id}: {str(e)}")
+            raise DSpaceError()
     
 class SubGroup():
     def __init__(self, group_service: "DspaceGroupService"):

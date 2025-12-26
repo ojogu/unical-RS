@@ -66,7 +66,7 @@ class DspaceClient:
         self,
         http_method: str,
         endpoint: str,
-        # params: Dict = None,
+        query_params: Dict = None,
         data: Dict = None,
         # cookie_data: Dict = None,
         req_headers: Optional[Dict]=None,
@@ -76,7 +76,7 @@ class DspaceClient:
         """Make HTTP request to DSpace API"""
 
         self.session = await http_client.get_session()
-        url = f"{self.base_url}{endpoint}"
+        url = f"{self.base_url}/{endpoint}"
         http_method = http_method.upper()
 
         # ================= HEADER HANDLING =================
@@ -88,6 +88,8 @@ class DspaceClient:
         # Optional token (jwt for authentication)
         if jwt_token:
             headers["Authorization"] = jwt_token
+            
+
 
         # ================= REQUEST DATA =================
         request_kwargs = {
@@ -97,6 +99,9 @@ class DspaceClient:
             # "params": params,
         }
 
+        #handle query param
+        if query_params:
+            request_kwargs["payload"] = query_params
         # Handle content type
         content_type = headers.get("Content-Type", "").lower()
         if http_method in ("POST", "PUT", "PATCH"):

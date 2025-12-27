@@ -64,3 +64,83 @@ class GroupParams(BaseModel):
 #     },
 #     "role_name": "admin"
 # }
+
+# Group dict for Super Admin
+super_admin_group_dict = {
+    "name": "Library Super Administrators",
+    "metadata": {
+        "dc.description": [
+            {
+                "value": "Group for super administrators with ultimate access to all system functions",
+                "language": "en"
+            }
+        ],
+        "dc.title": [
+            {
+                "value": "Super Administrators",
+                "language": "en"
+            }
+        ]
+    },
+    "role_name": "super_admin"
+}
+
+# Group dict for User
+user_group_dict = {
+    "name": "Library Users",
+    "metadata": {
+        "dc.description": [
+            {
+                "value": "Group for standard library users with read-only access",
+                "language": "en"
+            }
+        ],
+        "dc.title": [
+            {
+                "value": "Users",
+                "language": "en"
+            }
+        ]
+    },
+    "role_name": "user"
+}
+
+# Group dict for Lecturer
+lecturer_group_dict = {
+    "name": "Lecturers",
+    "metadata": {
+        "dc.description": [
+            {
+                "value": "Group for academic staff with permissions to create and manage resources",
+                "language": "en"
+            }
+        ],
+        "dc.title": [
+            {
+                "value": "Lecturers",
+                "language": "en"
+            }
+        ]
+    },
+    "role_name": "lecturer"
+}
+
+# Group dict for Student
+student_group_dict = {
+    "name": "Students",
+    "metadata": {
+        "dc.description": [
+            {
+                "value": "Group for students with permissions to access and contribute to library resources",
+                "language": "en"
+            }
+        ],
+        "dc.title": [
+            {
+                "value": "Students",
+                "language": "en"
+            }
+        ]
+    },
+    "role_name": "student"
+}

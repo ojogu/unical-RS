@@ -113,7 +113,7 @@ class DspaceClient:
         # Optional cookies
         # if cookie_data:
         #     request_kwargs["cookies"] = cookie_data automatic parsing of cookies by aiohttp
-
+        
         logger.info(f"Making {http_method} request to: {url}")
         logger.debug(f"Request headers: {headers}")
         # logger.debug(f"Request params: {params}")
@@ -122,6 +122,12 @@ class DspaceClient:
 
 
         async with self.session.request(**request_kwargs) as response:
+            logger.info(f"Total cookies in jar: {len(self.session.cookie_jar)}")
+            for cookie in self.session.cookie_jar:
+                logger.info(f"Name: {cookie.key}")
+                logger.info(f"Value: {cookie.value}")
+                logger.info(f"Domain: {cookie['domain']}")
+                logger.info("-" * 10)
             response_headers = dict(response.headers)
             return await self._handle_response(response, response_headers)
 

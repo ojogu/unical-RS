@@ -65,6 +65,7 @@ class Role(BaseModel):
     name: Mapped[Role_Enum] = mapped_column(
         SqlEnum(Role_Enum, name="role_enum"),  nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
+    group_id: Mapped[str] = mapped_column(String, nullable=True)
 
     permissions: Mapped[list["Permission"]] = relationship(
         "Permission", secondary=role_permissions, backref="roles", lazy="selectin"

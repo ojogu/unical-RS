@@ -100,11 +100,26 @@ async def seed_roles(session: AsyncSession):
     await session.commit()
     print("Roles seeding complete.")
 
+async def add_group_id(session: AsyncSession, group_id: str, role_name: Role_Enum):
+    print(f"Adding group_id {group_id} to role {role_name}...")
+    # Find the role by name
+    role = await session.scalar(sa.select(Role).where(Role.name == role_name))
 
+    if not role:
+        print(f"Role {role_name} not found!")
+        return
+
+    # Update the group_id
+    role.group_id = group_id
+    session.add(role)
+    await session.commit()
+    print(f"Successfully updated group_id for role {role_name}")
+    
 async def main():
     async for session in get_session():
-        await seed_permissions(session)
-        await seed_roles(session)
+        # await seed_permissions(session)
+        # await seed_roles(session)
+        await add_group_id(session, "09e3d5a7-a9c5-4fdc-98cb-a8bdc0360b92", Role_Enum.ADMIN)
         print("Database seeding complete!")
 
 if __name__ == "__main__":

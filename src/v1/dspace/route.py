@@ -5,7 +5,7 @@ from src.utils.log import setup_logger
 from src.v1.dspace.schema import CreateGroup
 from src.v1.dspace.service import DspaceAuthService, DspaceGroupService
 from src.v1.auth.schema import CreateUser, Login
-
+from src.utils.redis_client import clear_cache
 logger = setup_logger(__name__, "dspace_auth_routes.log")
 
 # auth for implement admin endpoints for testing, or use http client to access this
@@ -43,10 +43,19 @@ async def auth_status():
     pass
 
 @dspace_auth_router.post("/groups", tags=["auth"])
-# use our in app jwt
 async def create_group(
     group_data:CreateGroup,
     group_service: DspaceGroupService = Depends(get_group_service)):
-    pass
+    new_group = await group_service.create_group(group_data)
+    logger.info(new_group)
+    return {
+        "msg":"new group created"
+    }
+    
 
 
+@dspace_auth_router.get("/clear-cache")
+async def clear():
+    await clear_cache()
+    return {"msg": "cache cleared"}
+    

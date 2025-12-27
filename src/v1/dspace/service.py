@@ -10,7 +10,7 @@ from src.v1.base.exception import (
 from src.v1.dspace.schema import CreateGroup
 from pydantic import ValidationError
 from enum import Enum
-
+from functools import partial
 logger = setup_logger(__name__, "dspace_auth_service.log")
 logger_group = setup_logger("dspace_group_service", "dspace_group_service.log")
 
@@ -76,14 +76,17 @@ class DspaceAuthService():
             logger.debug(f"res body: {req}")
             
             #update jwt/header token to from header, so can access for other endpoints
-            new_token = res_headers.get("DSPACE-XSRF-TOKEN")
+            crsf_token = res_headers.get("DSPACE-XSRF-TOKEN")
             jwt_token = res_headers.get("Authorization")
+            token = await self.status(jwt_token, crsf_token)
+            logger.info(f"new token: {token}")
+            
             data = {
-                "DSPACE-XSRF-TOKEN":new_token,
+                "DSPACE-XSRF-TOKEN":token,
                 "jwt_token": jwt_token 
             }
             await set_cache(email, data)
-            
+            logger.info(f"set cache for: {data}")
             return data
             
         except Exception as e:
@@ -92,6 +95,8 @@ class DspaceAuthService():
     
     async def register(self, user_data: CreateUser):
         try:
+            self.login_callback = partial(self.login, config.base_username, config.base_password)
+            
             logger.info(f"Attempting to register new user: {user_data.email}")
             
             # base_user = config.base_username
@@ -100,7 +105,7 @@ class DspaceAuthService():
             # Make the request with base credentials to fetch tokens for user creation
             
             #check redis for token to reduce API call
-            tokens:dict = await get_or_fetch_cache(config.base_username, self.login(config.base_username, config.base_password))
+            tokens:dict = await get_or_fetch_cache(config.base_username, self.login_callback)
             # tokens: dict = await self.login(base_user, base_password)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
@@ -196,11 +201,12 @@ class DspaceAuthService():
             logger.error(f"Failed to logout: {str(e)}")
             raise DSpaceError()
     
-    async def status(self, access_token):
+    async def status(self, access_token, crsf_token):
         try:
             logger.info("Attempting to fetch authentication status")
             headers = {
-                "Authorization": access_token
+                "Authorization": access_token,
+                "X-XSRF-TOKEN": crsf_token
             }
             req, res_headers = await dspace_client._make_request(
                 http_method=HTTPMethod.GET,
@@ -210,7 +216,8 @@ class DspaceAuthService():
             logger.info("Authentication status retrieved successfully")
             logger.debug(f"Response headers: {res_headers}")
             logger.debug(f"Response body: {req}")
-            return req
+            token = res_headers.get("DSPACE-XSRF-TOKEN")
+            return token
         except Exception as e:
             logger.error(f"Failed to fetch authentication status: {str(e)}")
             raise DSpaceError()
@@ -222,15 +229,20 @@ class DspaceGroupService():
     """this class handles group operations for dspace"""
     def __init__(self, auth_service: "DspaceAuthService"):
         self.auth_service = auth_service
+        self.login_callback = partial(self.auth_service.login, config.base_username, config.base_password)
 
+    
     async def create_group(self, group_data:CreateGroup):
         try:
             #groups represents roles
             #it will be an atomic operation to when creating roles from our admin endpoints
-            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            logger_group.info(f"group data: {group_data.model_dump()}")
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
-
+            header = {
+                "X-XSRF-TOKEN": crsf_token
+            }
             if not crsf_token or not jwt_token:
                 logger_group.error("Failed to obtain required tokens for user registration")
                 raise DSpaceError()
@@ -238,7 +250,8 @@ class DspaceGroupService():
             req, res_headers = await dspace_client._make_request(
                     http_method=HTTPMethod.POST,
                     endpoint="eperson/groups",
-                    data=group_data.model_dump(exclude="role_name"),
+                    data=group_data.model_dump(exclude={"role_name"}),
+                    req_headers = header,
                     jwt_token=jwt_token
                 )
 
@@ -251,7 +264,7 @@ class DspaceGroupService():
         #     logger_group.error(f"Failed to create group {group_data.name}: {str(e)}")
         #     raise
         except Exception as e:
-            logger_group.error(f"Unexpected error during group creation for {group_data.name}: {str(e)}")
+            logger_group.error(f"Unexpected error during group creation for {group_data.name}: {str(e)}", exc_info=True)
             raise DSpaceError()
 
 
@@ -293,7 +306,7 @@ class DspaceGroupService():
         try:
             logger_group.info(f"Attempting to delete group with ID: {group_id}")
             #fetch tokens
-            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
 
@@ -321,7 +334,7 @@ class DspaceGroupService():
         try:
             logger_group.info(f"Attempting to update group name for group ID: {group_id}")
             # Fetch tokens
-            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
 
@@ -378,7 +391,7 @@ class DspaceGroupService():
         try:
             logger_group.info(f"Attempting to link user {user_id} to group {group_id}")
             # Fetch tokens
-            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
 
@@ -413,7 +426,7 @@ class DspaceGroupService():
         try:
             logger_group.info(f"Attempting to remove user {user_id} from group {group_id}")
             # Fetch tokens
-            tokens = await get_or_fetch_cache(config.base_username, self.auth_service.login(config.base_username, config.base_password))
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
 

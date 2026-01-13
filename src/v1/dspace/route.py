@@ -1,4 +1,5 @@
 # dspace auth routes
+import uuid
 from fastapi import APIRouter, Depends
 
 from src.utils.log import setup_logger
@@ -52,10 +53,29 @@ async def create_group(
         "msg":"new group created"
     }
     
+@dspace_auth_router.delete("/groups/{group_id}", tags=["auth"])
+async def delete_group(
+    group_id:uuid.UUID,
+    group_service: DspaceGroupService = Depends(get_group_service)):
+    result = await group_service.delete_group(str(group_id))
+    return {
+        "msg": "Group deleted successfully"
+    }
+    
+@dspace_auth_router.get("/groups/{group_id}", tags=["auth"])
+async def fetch_all_groups(
+    group_id:uuid.UUID,
+    group_service: DspaceGroupService = Depends(get_group_service)):
+    # new_group = await group_service.create_group(group_data)
+    # logger.info(new_group)
+    group = await group_service.fetch_single_group(group_id)
+    return {
+        "msg":group
+    }
+    
 
 
 @dspace_auth_router.get("/clear-cache")
 async def clear():
     await clear_cache()
     return {"msg": "cache cleared"}
-    

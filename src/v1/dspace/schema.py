@@ -1,7 +1,8 @@
 import uuid
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from src.v1.model.roles import Role_Enum
+from src.v1.admin.schema import CreatePermission
 
 class MetadataEntry(BaseModel):
     value: str
@@ -16,7 +17,10 @@ class MetadataEntry(BaseModel):
 class CreateGroup(BaseModel):
     name: str
     metadata: Dict[str, List[MetadataEntry]]
-    role_name: Role_Enum
+    # role_name: Role_Enum
+    # description: str
+    # permissions: Union[CreatePermission, List[CreatePermission]]
+
     class Config:
         from_attributes = True
 
@@ -42,7 +46,12 @@ class GroupParams(BaseModel):
 #             )
 #         ]
 #     },
-#     role_name=Role_Enum.ADMIN
+#     role_name=Role_Enum.ADMIN,
+#     description="Administrator role with full access",
+#     permissions=[
+#         CreatePermission(name="CREATE_ROLE", description="Can create roles"),
+#         CreatePermission(name="READ_ROLE", description="Can read roles")
+#     ]
 # )
 
 # # As dictionary
@@ -62,7 +71,12 @@ class GroupParams(BaseModel):
 #             }
 #         ]
 #     },
-#     "role_name": "admin"
+#     "role_name": "admin",
+#     "description": "Administrator role with full access",
+#     "permissions": [
+#         {"name": "CREATE_ROLE", "description": "Can create roles"},
+#         {"name": "READ_ROLE", "description": "Can read roles"}
+#     ]
 # }
 
 # Group dict for Super Admin

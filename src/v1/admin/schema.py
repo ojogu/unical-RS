@@ -1,16 +1,29 @@
+import uuid
 from pydantic import BaseModel
-from typing import List 
+from typing import List, Union, TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from src.v1.dspace.schema import CreateGroup
 
 class CreatePermission(BaseModel):
-    name: str 
+    id: Optional[uuid.UUID] = None
+    name: str
     description: str
+    class Config:
+        from_attributes = True
+
+class UpdatePermission(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
     class Config:
         from_attributes = True
         
 class CreateRole(BaseModel):
-    name: str 
+    name: str
     description: str
-    permissions: List[CreatePermission]
+    permissions: Union[uuid.UUID, List[uuid.UUID]]
+    group_data: "CreateGroup"
+    
     class Config:
         from_attributes = True
     
@@ -19,10 +32,10 @@ class ValidatePermissions(BaseModel):
     class Config:
         from_attributes = True
         
-class ValidateRoles(BaseModel):
-    roles: List[CreateRole]
-    class Config:
-        from_attributes = True
+# class ValidateRoles(BaseModel):
+#     roles: List["CreateGroup"]  # Forward reference since CreateGroup is in another module
+#     class Config:
+#         from_attributes = True
 
 
 
@@ -40,5 +53,3 @@ class ValidateRoles(BaseModel):
 # # Accessing the list:
 # print(validated_data.permissions)
 # # Output: [CreatePermission(name='READ_USERS', ...), CreatePermission(name='WRITE_POSTS', ...)]
-
-

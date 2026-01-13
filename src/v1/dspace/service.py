@@ -1,3 +1,4 @@
+import json
 from src.v1.dspace.client import DspaceClient
 from src.utils.redis_client import set_cache, get_or_fetch_cache, get_from_cache
 from src.utils.config import config
@@ -247,19 +248,21 @@ class DspaceGroupService():
                 logger_group.error("Failed to obtain required tokens for user registration")
                 raise DSpaceError()
 
-            req, res_headers = await dspace_client._make_request(
+            res, res_headers = await dspace_client._make_request(
                     http_method=HTTPMethod.POST,
                     endpoint="eperson/groups",
-                    data=group_data.model_dump(exclude={"role_name"}),
+                    data=group_data.model_dump(exclude={"role_name", "description", "permissions"}),
                     req_headers = header,
                     jwt_token=jwt_token
                 )
 
             logger_group.info(f"group created successfully: {group_data.name}")
             logger_group.debug(f"Response headers: {res_headers}")
-            logger_group.debug(f"Response body: {req}")
+            logger_group.debug(f"Response body: {res}")
 
-            return req
+            if isinstance(res, str):
+                res:dict = json.loads(res)
+            return res
         # except (BadRequest,) as e:
         #     logger_group.error(f"Failed to create group {group_data.name}: {str(e)}")
         #     raise
@@ -272,9 +275,20 @@ class DspaceGroupService():
     async def fetch_single_group(self, group_id:str):
         try:
             logger_group.info(f"Fetching single group with ID: {group_id}")
+            tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
+            crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
+            jwt_token = tokens.get("jwt_token")
+            header = {
+                "X-XSRF-TOKEN": crsf_token
+            }
+            if not crsf_token or not jwt_token:
+                logger_group.error("Failed to obtain required tokens for user registration")
+                raise DSpaceError()
             req, res_header = await dspace_client._make_request(
                 http_method=HTTPMethod.GET,
-                endpoint=f"eperson/groups/{group_id}"
+                endpoint=f"eperson/groups/{group_id}",
+                req_headers = header,
+                jwt_token=jwt_token
             )
             logger_group.info(f"Group fetched successfully: {group_id}")
             logger_group.debug(f"Response headers: {res_header}")
@@ -309,6 +323,10 @@ class DspaceGroupService():
             tokens = await get_or_fetch_cache(config.base_username, self.login_callback)
             crsf_token = tokens.get("DSPACE-XSRF-TOKEN")
             jwt_token = tokens.get("jwt_token")
+            
+            header = {
+                "X-XSRF-TOKEN": crsf_token
+            }
 
             if not crsf_token or not jwt_token:
                 logger_group.error("Failed to obtain required tokens for group deletion")
@@ -318,6 +336,7 @@ class DspaceGroupService():
             req, res_headers = await dspace_client._make_request(
                 endpoint=f"eperson/groups/{group_id}",
                 http_method=HTTPMethod.DELETE,
+                req_headers = header,
                 jwt_token=jwt_token
 
             )
